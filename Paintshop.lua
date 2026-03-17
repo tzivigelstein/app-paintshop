@@ -337,7 +337,7 @@ local function stepRedo()
   editingCanvasPhase = editingCanvasPhase + 1
 end
 
-local function undoMemoryFootpring()
+local function undoMemoryFootprint()
   return table.sum(undoStack, function (u) return u('memoryFootprint') end) 
       + table.sum(redoStack, function (u) return u('memoryFootprint') end)
 end
@@ -361,7 +361,7 @@ setInterval(function ()
   io.createDir(autosaveDir)
   editingCanvas:save(string.format('%s/autosave-%s.zip', autosaveDir, autosaveIndex), ac.ImageFormat.ZippedDDS)
   autosaveIndex = autosaveIndex + 1
-  if autosaveIndex == 10 then autosaveIndex = 1 end
+  if autosaveIndex > 10 then autosaveIndex = 1 end
 end, 20)
 
 local function IconButton(icon, tooltip, active, enabled)
@@ -378,10 +378,10 @@ local function DrawControl()
     stepUndo()
   end
   if ui.itemHovered() then    
-    ui.setTooltip(string.format('Undo (Ctrl+Z)', #undoStack, math.ceil(undoMemoryFootpring() / (1024 * 1024))))
+    ui.setTooltip(string.format('Undo (Ctrl+Z) — %d steps, %d MB used', #undoStack, math.ceil(undoMemoryFootprint() / (1024 * 1024))))
   end
   ui.sameLine(0, 4)
-  if IconButton(icons.Redo, string.format('Redo (Ctrl+Y)', #redoStack), false, #redoStack > 0) or #redoStack > 0 and shortcuts.redo() then
+  if IconButton(icons.Redo, string.format('Redo (Ctrl+Y) — %d steps', #redoStack), false, #redoStack > 0) or #redoStack > 0 and shortcuts.redo() then
     stepRedo()
   end
   ui.sameLine(0, 4)  
@@ -447,7 +447,7 @@ local function DrawControl()
         folder = skinDir,
         fileTypes = { { name = 'PNG', mask = '*.png' }, { name = 'JPEG', mask = '*.jpg;*.jpeg' } },
         fileName = carTexture and string.gsub(carTexture, '.+[/\\:]', ''):gsub('%.[a-zA-Z]+$', '.png'),
-        defaultExtension = 'dds',
+        defaultExtension = 'png',
       }, function (err, filename)
         if not err and filename then
           editingCanvas:save(filename)
@@ -464,7 +464,7 @@ local function DrawControl()
         folder = skinDir,
         fileTypes = { { name = 'PNG', mask = '*.png' }, { name = 'JPEG', mask = '*.jpg;*.jpeg' } },
         fileName = carTexture and string.gsub(carTexture, '.+[/\\:]', ''):gsub('%.[a-zA-Z]+$', '.png'),
-        defaultExtension = 'dds',
+        defaultExtension = 'png',
       }, function (err, filename)
         if not err and filename then
           editingCanvas:save(filename)
