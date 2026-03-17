@@ -23,7 +23,7 @@ return {
     local up  = base.getBrushUp(ray.dir, s)
     state.selectedMeshes:setMaterialTexture('txDiffuse', state.editingCanvas)
     state.selectedMeshes:setMaterialProperty('ksAmbient', 1)
-    s._shot:clear(table.random(rgbm.colors))
+    s._shot:clear(rgbm.colors.black)
     local lpos, ldir, lup =
       state.car.worldToLocal:transformPoint(ray.pos),
       state.car.worldToLocal:transformVector(ray.dir),

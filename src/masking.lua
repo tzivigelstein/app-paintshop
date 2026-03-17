@@ -20,8 +20,14 @@ M.maskingPoints       = {
 local maskingDirty        = true
 local maskingStartMousePos = nil
 
+-- Guards for updateMaskingCanvas: skip GPU work when neither the masking plane nor the
+-- camera-relative side has changed since the last canvas build.
+local maskingConfigDirty    = true
+local maskingLastCameraSign = 0
+
 -- Recalculates maskingPos and maskingDir from the four control points.
 local function fitMaskingPoints(fitFirst)
+  maskingConfigDirty = true
   if fitFirst then
     M.maskingDir = math.cross(M.maskingPoints[1] - M.maskingPoints[2], M.maskingPoints[4] - M.maskingPoints[3]):normalize()
     M.maskingPos = (M.maskingPoints[1] + M.maskingPoints[2]) / 2
@@ -40,6 +46,7 @@ local function fitMaskingPoints(fitFirst)
 end
 
 function M.applyQuickMasking(from, to)
+  maskingConfigDirty = true
   if math.abs(from.x - to.x) < math.abs(from.z - to.z) then
     M.maskingPoints[1] = vec3(0, from.y, from.z)
     M.maskingPoints[2] = vec3(0, to.y, to.z)
@@ -63,7 +70,8 @@ function M.maskingBackup()
     if action == 'update' then return M.maskingBackup() end
     if action == 'dispose' then return end
     M.maskingPos, M.maskingDir, M.maskingPoints = table.unpack(stringify.parse(b))
-    M.maskingActive = true
+    M.maskingActive    = true
+    maskingConfigDirty = true
   end
 end
 
@@ -81,11 +89,21 @@ function M.updateMaskingCanvas()
     state.maskingCanvas = ui.ExtraCanvas(vec2(2048, 2048))
   end
 
+  -- Compute which side of the masking plane the camera is on.
+  local cameraSign = math.sign(
+    M.maskingDir:dot(state.car.worldToLocal:transformPoint(ac.getCameraPosition()) - M.maskingPos)
+  )
+  if not maskingConfigDirty and cameraSign == maskingLastCameraSign then
+    return  -- plane and camera-side unchanged: canvas is still valid
+  end
+  maskingConfigDirty    = false
+  maskingLastCameraSign = cameraSign
+
   maskingDirty = true
   state.maskingCanvas:clear(rgbm.colors.black)
   state.maskingCanvas:update(function ()
     local mdir = M.maskingDir
-    if mdir:dot(state.car.worldToLocal:transformPoint(ac.getCameraPosition()) - M.maskingPos) < 0 then
+    if cameraSign < 0 then
       mdir = mdir:clone():scale(-1)
     end
     local pos = M.maskingPos + mdir * 5

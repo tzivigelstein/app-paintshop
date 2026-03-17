@@ -36,18 +36,25 @@ return {
         end
         if ui.itemHovered() then
           ui.tooltip(function ()
-            if s._previewCanvas ~= nil then s._previewCanvas:dispose() end
-            local font = assets.fonts[i].source
-            if state.stored.fontBold   then font = font..';Weight=Bold' end
-            if state.stored.fontItalic then font = font..';Style=Italic' end
-            ui.pushDWriteFont(font)
-            local sz = ui.measureDWriteText(s._labelText, 24)
-            sz.x, sz.y = math.max(sz.x, 24), sz.y + 8
-            s._previewCanvas = ui.ExtraCanvas(sz):clear(rgbm.colors.transparent):update(function ()
-              ui.dwriteTextAligned(s._labelText, 24, ui.Alignment.Center, ui.Alignment.Center, ui.availableSpace(), false, rgbm.colors.white)
-            end)
-            ui.popDWriteFont()
-            ui.image(s._previewCanvas, sz)
+            -- Only rebuild the preview canvas when the hovered font index actually changes.
+            if s._previewFontIndex ~= i then
+              if s._previewCanvas ~= nil then s._previewCanvas:dispose() end
+              s._previewFontIndex = i
+              local font = assets.fonts[i].source
+              if state.stored.fontBold   then font = font..';Weight=Bold' end
+              if state.stored.fontItalic then font = font..';Style=Italic' end
+              ui.pushDWriteFont(font)
+              local sz = ui.measureDWriteText(s._labelText, 24)
+              sz.x, sz.y = math.max(sz.x, 24), sz.y + 8
+              s._previewCanvas = ui.ExtraCanvas(sz):clear(rgbm.colors.transparent):update(function ()
+                ui.dwriteTextAligned(s._labelText, 24, ui.Alignment.Center, ui.Alignment.Center, ui.availableSpace(), false, rgbm.colors.white)
+              end)
+              s._previewCanvasSize = sz
+              ui.popDWriteFont()
+            end
+            if s._previewCanvas ~= nil then
+              ui.image(s._previewCanvas, s._previewCanvasSize)
+            end
           end)
         end
       end
@@ -111,6 +118,9 @@ return {
   stickerContinious = false,
   blendMode         = render.BlendMode.BlendPremultiplied,
 
-  _labelText  = ac.getDriverName(0),
-  _labelDirty = true,
+  _labelText        = ac.getDriverName(0),
+  _labelDirty       = true,
+  _previewFontIndex = nil,
+  _previewCanvas    = nil,
+  _previewCanvasSize = nil,
 }

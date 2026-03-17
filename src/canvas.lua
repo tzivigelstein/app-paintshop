@@ -8,6 +8,7 @@ local M = {}
 function M.ensure()
   if state.editingCanvas ~= nil then return end
   state.editingCanvas = ui.ExtraCanvas(vec2(2048, 2048)):clear(rgbm.new(state.stored.bgColor.rgb, 1))
+  state.aoBaseCanvas  = ui.ExtraCanvas(vec2(2048, 2048))
   state.aoCanvas      = ui.ExtraCanvas(vec2(2048, 2048), 4, render.AntialiasingMode.CMAA)
   state.selectedMeshes:setMaterialTexture('txDiffuse', state.aoCanvas)
 end
@@ -26,6 +27,7 @@ end
 -- Called by finishEditing() in skin_editor before camera.releaseSmooth().
 function M.clearSession()
   state.editingCanvas      = nil
+  state.aoBaseCanvas       = nil
   state.aoCanvas           = nil
   state.maskingCanvas      = nil
   state.accessibleData     = nil

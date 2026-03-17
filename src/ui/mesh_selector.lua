@@ -17,7 +17,8 @@ function M.render()
     ui.pushFont(ui.Font.Small)
     ui.text('\tMesh: '     ..tostring(ref:name()))
     ui.text('\tMaterial: ' ..tostring(ref:materialName()))
-    ui.text('\tTexture: '  ..tostring(ref:getTextureSlotFilename('txDiffuse')))
+    local texName = ref:getTextureSlotFilename('txDiffuse')
+    ui.text('\tTexture: '  ..tostring(texName))
     ui.popFont()
     ui.offsetCursorY(20)
 
@@ -40,8 +41,7 @@ function M.render()
     ui.image(carPreview, vec2(210, 160))
     ui.offsetCursorY(20)
 
-    local texName = ref:getTextureSlotFilename('txDiffuse')
-    local size    = ui.imageSize(texName)
+    local size = ui.imageSize(texName)
 
     if size.x > 0 and size.y > 0 then
       ui.textWrapped(

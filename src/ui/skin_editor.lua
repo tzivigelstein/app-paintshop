@@ -10,6 +10,9 @@ local comp      = require('src/ui/components')
 
 local M = {}
 
+-- Cached window title — avoids string.gsub + ac.setWindowTitle overhead every frame.
+local cachedTitle = nil
+
 -- Ends the current editing session: restores original texture, smoothly releases
 -- the camera, and resets all session state.
 function M.finishEditing()
@@ -18,16 +21,19 @@ function M.finishEditing()
       :setMaterialTexture('txDiffuse', state.carTexture)
       :setMotionStencil(state.taaFix.Off)
   end
+  cachedTitle = nil
   camera.releaseSmooth()
   canvas.clearSession()
 end
 
 -- Top toolbar: Undo, Redo, Open/Import, Save/Save-as, Export, Finish.
 local function DrawControl()
-  ac.setWindowTitle('paintshop',
-    string.gsub(state.saveFilename or (state.carTexture..' (new)'), '.+[/\\:]', '')
+  local newTitle = string.gsub(state.saveFilename or (state.carTexture..' (new)'), '.+[/\\:]', '')
     ..(state.changesMade ~= 0 and '*' or '')
-  )
+  if newTitle ~= cachedTitle then
+    cachedTitle = newTitle
+    ac.setWindowTitle('paintshop', newTitle)
+  end
 
   local IconButton = comp.IconButton
 

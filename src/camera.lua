@@ -3,6 +3,12 @@ local canvas = require('src/canvas')
 
 local M = {}
 
+-- Constant vec3 literals hoisted to avoid per-frame allocation.
+local _axisX   = vec3(1, 0, 0)
+local _axisY   = vec3(0, 1, 0)
+local _lookFwd = vec3(0, 0, 1)
+local _lookUp  = vec3(0, 1, 0)
+
 -- Called every frame while a mesh session is active.
 -- Ensures canvases exist, then updates orbit camera position and input.
 function M.update()
@@ -10,15 +16,15 @@ function M.update()
 
   local cam = state.camera
   if cam then
-    local mat = mat4x4.rotation(state.cameraAngle.y, vec3(1, 0, 0))
-      :mul(mat4x4.rotation(state.cameraAngle.x, vec3(0, 1, 0)))
+    local mat = mat4x4.rotation(state.cameraAngle.y, _axisX)
+      :mul(mat4x4.rotation(state.cameraAngle.x, _axisY))
       :mul(state.car.bodyTransform)
 
     cam.transform.position = mat:transformPoint(
       vec3(0, state.car.aabbCenter.y * math.smoothstep(math.lerpInvSat(state.cameraAngle.y, 0.5, 0)), -8)
     )
-    cam.transform.look = mat:transformVector(vec3(0, 0, 1))
-    cam.transform.up   = mat:transformVector(vec3(0, 1, 0))
+    cam.transform.look = mat:transformVector(_lookFwd)
+    cam.transform.up   = mat:transformVector(_lookUp)
     cam.fov = 24
 
     cam.ownShare = math.applyLag(cam.ownShare, state.stored.orbitCamera and 1 or 0, 0.85, ac.getDeltaT())

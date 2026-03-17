@@ -47,6 +47,9 @@ M.changesMade    = 0
 -- Canvases
 M.editingCanvas      = nil  ---@type ui.ExtraCanvas
 M.aoCanvas           = nil  ---@type ui.ExtraCanvas
+-- Intermediate canvas: editingCanvas composited with the AO map.
+-- Updated only when editingCanvasPhase changes; aoCanvas blits from this + cursor overlay.
+M.aoBaseCanvas       = nil  ---@type ui.ExtraCanvas
 M.maskingCanvas      = nil  ---@type ui.ExtraCanvas
 M.accessibleData     = nil  ---@type ui.ExtraCanvasData
 M.editingCanvasPhase = 0

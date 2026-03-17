@@ -49,7 +49,7 @@ return {
     local up = base.getBrushUp(s._rayDir, s)
     state.selectedMeshes:setMaterialTexture('txDiffuse', state.editingCanvas)
     state.selectedMeshes:setMaterialProperty('ksAmbient', 1)
-    s._shot:clear(table.random(rgbm.colors))
+    s._shot:clear(rgbm.colors.black)
     local brushSize = s.brush.brushSize * base.brushSizeMult(s.brush)
     s._shot:setOrthogonalParams(vec2(brushSize, brushSize), 100):update(s._rayPos, s._rayDir, up, 0)
     state.selectedMeshes:setMaterialTexture('txDiffuse', state.aoCanvas)

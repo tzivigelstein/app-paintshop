@@ -115,12 +115,22 @@ local otherSidePhase = -1
 local otherSideSide  = 0
 local bakKsAmbient
 
+-- Tracks the last editingCanvasPhase written into aoBaseCanvas.
+-- When it matches state.editingCanvasPhase, the background composite is still valid.
+local aoBasePhase = -1
+
 -- Composites editingCanvas + AO, adds other-side ghost projection and brush cursor preview.
-local function updateAOCanvas()
-  if state.aoCanvas == nil then return end
+-- `ray` is the mouse ray already created by the caller (M.update) this frame.
+--
+-- Strategy: the heavy drawWithAO shader (4 MP, 2 texture samples) runs into aoBaseCanvas
+-- only when editingCanvasPhase changes. The final aoCanvas is rebuilt every frame from
+-- aoBaseCanvas + the cursor overlay, which is cheap (one blit + one projection).
+local function updateAOCanvas(ray)
+  if state.aoCanvas == nil or state.aoBaseCanvas == nil then return end
   local tool = state.activeTool
   local projectDir
 
+  -- ── Other-side geometry shot (only when canvas changed) ──────────────────────────
   if state.stored.projectOtherSide then
     if not otherSideShot then
       bakKsAmbient = state.selectedMeshes:getMaterialPropertyValue('ksAmbient')
@@ -143,7 +153,7 @@ local function updateAOCanvas()
     end
   end
 
-  local ray = render.createMouseRay()
+  -- ── Brush cursor / sticker preview texture ────────────────────────────────────────
   local tex
   if tool and tool.stickerMode then
     tex = tool.procBrushTex and tool:procBrushTex(ray, true) or tool.brush.brushTex
@@ -153,10 +163,25 @@ local function updateAOCanvas()
     updateBrushOutline(tool and tool.stickerMode and tex ~= nil)
   end
 
-  state.aoCanvas:update(function ()
-    ao.drawWithAO(state.editingCanvas, state.aoTexture or state.carTexture)
+  -- ── Background composite (expensive shader) — only when canvas changed ────────────
+  -- ui.renderShader inside update() targets the canvas being rendered, so drawWithAO
+  -- writes into aoBaseCanvas correctly. projectTexture however always targets the mesh
+  -- material texture (aoCanvas), so other-side projection stays in aoCanvas:update() below.
+  if aoBasePhase ~= state.editingCanvasPhase then
+    aoBasePhase = state.editingCanvasPhase
+    state.aoBaseCanvas:update(function ()
+      ao.drawWithAO(state.editingCanvas, state.aoTexture or state.carTexture)
+    end)
+  end
 
-    if state.stored.projectOtherSide then
+  -- ── Final aoCanvas: blit background + projections + cursor (runs every frame) ──────
+  -- Blitting aoBaseCanvas resets aoCanvas each frame, then we layer the other-side ghost
+  -- and cursor on top. projectTexture writes into the material texture (aoCanvas) which
+  -- is consistent with how it was used before the split.
+  state.aoCanvas:update(function ()
+    ui.drawImage(state.aoBaseCanvas, 0, ui.windowSize())
+
+    if state.stored.projectOtherSide and otherSideShot then
       state.selectedMeshes:projectTexture({
         filename    = otherSideShot,
         pos         = state.car.position,
@@ -184,10 +209,10 @@ end
 -- Main paint loop — called every world update frame while editing.
 function M.update()
   local tool = state.activeTool
+  local ray  = render.createMouseRay()
   if tool and tool.brush then
     if state.uiState.isMouseLeftKeyDown then
       if state.drawing then
-        local ray   = render.createMouseRay()
         local brush = tool.brush
         local tex   = tool.procBrushTex and tool:procBrushTex(ray, false) or brush.brushTex
         state.editingCanvas:update(function ()
@@ -252,7 +277,7 @@ function M.update()
   end
 
   masking.updateMaskingCanvas()
-  updateAOCanvas()
+  updateAOCanvas(ray)
 end
 
 return M
